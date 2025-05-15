@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Doodle Jump Prototype</title>
+  <title>Doodle Jump 02 Springs Added</title>
   <style>
     body { margin: 0; background: #222; }
     canvas { display: block; margin: 0 auto; background: #aef; }
@@ -36,12 +36,16 @@ const PLATFORM_HEIGHT = 12;
 const PLATFORM_COUNT = 8;
 
 function createPlatform(y) {
+  // 20% chance to have a spring
+  const hasSpring = Math.random() < 0.2;
   return {
     x: Math.random() * (WIDTH - PLATFORM_WIDTH),
     y: y,
     w: PLATFORM_WIDTH,
     h: PLATFORM_HEIGHT,
-    color: '#fff'
+    color: '#fff',
+    hasSpring: hasSpring,
+    springOffset: hasSpring ? Math.random() * (PLATFORM_WIDTH - 20) : 0 // random spring position on platform
   };
 }
 
@@ -93,7 +97,6 @@ function update() {
   if (player.x < -player.w) player.x = WIDTH;
   if (player.x > WIDTH) player.x = -player.w;
 
-  // Platform collision (only falling)
   if (player.vy > 0) {
     for (let plat of platforms) {
       if (
@@ -103,7 +106,18 @@ function update() {
         player.y + player.h < plat.y + plat.h &&
         player.vy > 0
       ) {
-        player.vy = player.jump;
+        // Check for spring
+        if (
+          plat.hasSpring &&
+          player.x + player.w > plat.x + plat.springOffset + 5 &&
+          player.x < plat.x + plat.springOffset + 25 &&
+          player.y + player.h > plat.y - 10 &&
+          player.y + player.h < plat.y + plat.h
+        ) {
+          player.vy = player.jump * 1.8; // Super jump!
+        } else {
+          player.vy = player.jump;
+        }
       }
     }
   }
@@ -147,10 +161,26 @@ function draw() {
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x, player.y, player.w, player.h);
 
-  // Draw platforms
+  // Draw platforms and springs
   for (let plat of platforms) {
     ctx.fillStyle = plat.color;
     ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+
+    // Draw spring if present
+    if (plat.hasSpring) {
+      ctx.fillStyle = "#f22";
+      ctx.fillRect(
+        plat.x + plat.springOffset + 5, // spring x on platform
+        plat.y - 10, // slightly above platform
+        20, 10 // width, height
+      );
+      // Optional: Draw a simple coil
+      ctx.strokeStyle = "#fff";
+      ctx.beginPath();
+      ctx.moveTo(plat.x + plat.springOffset + 10, plat.y - 5);
+      ctx.lineTo(plat.x + plat.springOffset + 20, plat.y - 5);
+      ctx.stroke();
+    }
   }
 
   // Draw score
