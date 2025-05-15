@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Doodle Jump 02 Springs Added</title>
+  <title>Doodle Jump 03 Rockets added</title>
   <style>
     body { margin: 0; background: #222; }
     canvas { display: block; margin: 0 auto; background: #aef; }
@@ -36,8 +36,14 @@ const PLATFORM_HEIGHT = 12;
 const PLATFORM_COUNT = 8;
 
 function createPlatform(y) {
-  // 20% chance to have a spring
-  const hasSpring = Math.random() < 0.2;
+  // 20% chance to have a spring, 10% chance to have a rocket (exclusive)
+  const rand = Math.random();
+  let hasSpring = false, hasRocket = false;
+  if (rand < 0.1) {
+    hasRocket = true;
+  } else if (rand < 0.3) {
+    hasSpring = true;
+  }
   return {
     x: Math.random() * (WIDTH - PLATFORM_WIDTH),
     y: y,
@@ -45,7 +51,9 @@ function createPlatform(y) {
     h: PLATFORM_HEIGHT,
     color: '#fff',
     hasSpring: hasSpring,
-    springOffset: hasSpring ? Math.random() * (PLATFORM_WIDTH - 20) : 0 // random spring position on platform
+    springOffset: hasSpring ? Math.random() * (PLATFORM_WIDTH - 20) : 0,
+    hasRocket: hasRocket,
+    rocketOffset: hasRocket ? Math.random() * (PLATFORM_WIDTH - 20) : 0
   };
 }
 
@@ -97,6 +105,7 @@ function update() {
   if (player.x < -player.w) player.x = WIDTH;
   if (player.x > WIDTH) player.x = -player.w;
 
+  // Platform collision (only falling)
   if (player.vy > 0) {
     for (let plat of platforms) {
       if (
@@ -106,8 +115,19 @@ function update() {
         player.y + player.h < plat.y + plat.h &&
         player.vy > 0
       ) {
-        // Check for spring
+        // Check for rocket
         if (
+          plat.hasRocket &&
+          player.x + player.w > plat.x + plat.rocketOffset + 5 &&
+          player.x < plat.x + plat.rocketOffset + 25 &&
+          player.y + player.h > plat.y - 20 &&
+          player.y + player.h < plat.y + plat.h
+        ) {
+          player.vy = player.jump * 3; // Super rocket jump!
+          plat.hasRocket = false; // Rocket is used up
+        }
+        // Check for spring
+        else if (
           plat.hasSpring &&
           player.x + player.w > plat.x + plat.springOffset + 5 &&
           player.x < plat.x + plat.springOffset + 25 &&
@@ -161,7 +181,7 @@ function draw() {
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x, player.y, player.w, player.h);
 
-  // Draw platforms and springs
+  // Draw platforms, springs, and rockets
   for (let plat of platforms) {
     ctx.fillStyle = plat.color;
     ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
@@ -170,16 +190,33 @@ function draw() {
     if (plat.hasSpring) {
       ctx.fillStyle = "#f22";
       ctx.fillRect(
-        plat.x + plat.springOffset + 5, // spring x on platform
-        plat.y - 10, // slightly above platform
-        20, 10 // width, height
+        plat.x + plat.springOffset + 5,
+        plat.y - 10,
+        20, 10
       );
-      // Optional: Draw a simple coil
       ctx.strokeStyle = "#fff";
       ctx.beginPath();
       ctx.moveTo(plat.x + plat.springOffset + 10, plat.y - 5);
       ctx.lineTo(plat.x + plat.springOffset + 20, plat.y - 5);
       ctx.stroke();
+    }
+
+    // Draw rocket if present
+    if (plat.hasRocket) {
+      ctx.fillStyle = "#fa0";
+      ctx.fillRect(
+        plat.x + plat.rocketOffset + 5,
+        plat.y - 20,
+        20, 20
+      );
+      // Draw rocket "flames"
+      ctx.fillStyle = "#ff0";
+      ctx.beginPath();
+      ctx.moveTo(plat.x + plat.rocketOffset + 10, plat.y);
+      ctx.lineTo(plat.x + plat.rocketOffset + 15, plat.y + 10);
+      ctx.lineTo(plat.x + plat.rocketOffset + 20, plat.y);
+      ctx.closePath();
+      ctx.fill();
     }
   }
 
