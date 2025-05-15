@@ -2,24 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Doodle Jump 05 Monsters added</title>
+  <title>Doodle Jump 06 Menu-play btn added</title>
   <style>
     body { margin: 0; background: #222; }
     canvas { display: block; margin: 0 auto; background: #aef; }
+    #playBtn {
+      position: absolute;
+      left: 50%;
+      top: 60%;
+      transform: translate(-50%, -50%);
+      padding: 18px 48px;
+      font-size: 2em;
+      background: #3a3;
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px #0008;
+      z-index: 10;
+      display: none;
+    }
+    #menuTitle {
+      position: absolute;
+      left: 50%;
+      top: 30%;
+      transform: translate(-50%, -50%);
+      font-size: 3em;
+      color: #fff;
+      font-family: sans-serif;
+      text-shadow: 2px 2px 8px #000a;
+      z-index: 10;
+      display: none;
+      pointer-events: none;
+    }
+    #menuContainer {
+      position: absolute;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
+<div id="menuContainer">
+  <div id="menuTitle">Doodle Jump</div>
+  <button id="playBtn">PLAY</button>
+</div>
 <canvas id="game" width="400" height="600"></canvas>
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+const playBtn = document.getElementById('playBtn');
+const menuTitle = document.getElementById('menuTitle');
+const menuContainer = document.getElementById('menuContainer');
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 
+let gameState = "menu"; // "menu" or "play"
+
 let player = {
   x: WIDTH / 2,
-  y: HEIGHT - 50,
+  y: HEIGHT - 120,
   w: 40,
   h: 40,
   vy: -10,
@@ -133,21 +176,72 @@ function resetGame() {
   initMonsters();
 }
 
-initPlatforms();
-initMonsters();
+function showMenu() {
+  gameState = "menu";
+  playBtn.style.display = "block";
+  menuTitle.style.display = "block";
+  // Center player and platform for menu
+  player.x = WIDTH / 2 - player.w / 2;
+  player.y = HEIGHT / 2 - 80;
+  player.vy = -10;
+  player.vx = 0;
+  platforms = [{
+    x: WIDTH / 2 - PLATFORM_WIDTH / 2,
+    y: HEIGHT / 2,
+    w: PLATFORM_WIDTH,
+    h: PLATFORM_HEIGHT,
+    color: '#fff',
+    hasSpring: false,
+    hasRocket: false,
+    hasPropellor: false
+  }];
+  monsters = [];
+}
+
+function startGame() {
+  playBtn.style.display = "none";
+  menuTitle.style.display = "none";
+  resetGame();
+  gameState = "play";
+}
+
+playBtn.addEventListener('click', startGame);
+
+showMenu();
 
 let left = false, right = false;
 document.addEventListener('keydown', e => {
+  if (gameState === "menu") return;
   if (e.key === 'ArrowLeft') left = true;
   if (e.key === 'ArrowRight') right = true;
   if (e.key === ' ' && player.y > HEIGHT - 60) resetGame();
 });
 document.addEventListener('keyup', e => {
+  if (gameState === "menu") return;
   if (e.key === 'ArrowLeft') left = false;
   if (e.key === 'ArrowRight') right = false;
 });
 
 function update() {
+  if (gameState === "menu") {
+    // Bounce player on the single menu platform
+    player.vy += player.gravity;
+    player.y += player.vy;
+    let plat = platforms[0];
+    if (
+      player.y + player.h > plat.y &&
+      player.y + player.h < plat.y + plat.h + 10 &&
+      player.x + player.w > plat.x &&
+      player.x < plat.x + plat.w &&
+      player.vy > 0
+    ) {
+      player.vy = player.jump;
+      player.y = plat.y - player.h;
+    }
+    return true;
+  }
+
+  // --- Normal game update ---
   // Move player
   if (left) player.vx = -4;
   else if (right) player.vx = 4;
@@ -262,6 +356,7 @@ function update() {
     ctx.font = "20px sans-serif";
     ctx.fillText("Score: " + score, WIDTH / 2 - 40, HEIGHT / 2 + 30);
     ctx.fillText("Press SPACE to restart", WIDTH / 2 - 100, HEIGHT / 2 + 60);
+    showMenu();
     return false;
   }
 
@@ -275,25 +370,27 @@ function draw() {
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x, player.y, player.w, player.h);
 
-  // Draw monsters
-  for (let m of monsters) {
-    ctx.fillStyle = m.color;
-    ctx.fillRect(m.x, m.y, m.w, m.h);
-    // Eyes
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(m.x + 10, m.y + 10, 5, 0, Math.PI * 2);
-    ctx.arc(m.x + 30, m.y + 10, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.arc(m.x + 10, m.y + 10, 2, 0, Math.PI * 2);
-    ctx.arc(m.x + 30, m.y + 10, 2, 0, Math.PI * 2);
-    ctx.fill();
-    // Teeth
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(m.x + 15, m.y + 22, 4, 5);
-    ctx.fillRect(m.x + 22, m.y + 22, 4, 5);
+  // Draw monsters (not in menu)
+  if (gameState === "play") {
+    for (let m of monsters) {
+      ctx.fillStyle = m.color;
+      ctx.fillRect(m.x, m.y, m.w, m.h);
+      // Eyes
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(m.x + 10, m.y + 10, 5, 0, Math.PI * 2);
+      ctx.arc(m.x + 30, m.y + 10, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(m.x + 10, m.y + 10, 2, 0, Math.PI * 2);
+      ctx.arc(m.x + 30, m.y + 10, 2, 0, Math.PI * 2);
+      ctx.fill();
+      // Teeth
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(m.x + 15, m.y + 22, 4, 5);
+      ctx.fillRect(m.x + 22, m.y + 22, 4, 5);
+    }
   }
 
   // Draw platforms, springs, rockets, and propellor hats
@@ -356,10 +453,12 @@ function draw() {
     }
   }
 
-  // Draw score
-  ctx.fillStyle = "#000";
-  ctx.font = "20px sans-serif";
-  ctx.fillText("Score: " + score, 10, 30);
+  // Draw score (not in menu)
+  if (gameState === "play") {
+    ctx.fillStyle = "#000";
+    ctx.font = "20px sans-serif";
+    ctx.fillText("Score: " + score, 10, 30);
+  }
 }
 
 function loop() {
