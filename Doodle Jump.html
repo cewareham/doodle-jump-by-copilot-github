@@ -1,0 +1,174 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Doodle Jump Prototype</title>
+  <style>
+    body { margin: 0; background: #222; }
+    canvas { display: block; margin: 0 auto; background: #aef; }
+  </style>
+</head>
+<body>
+<canvas id="game" width="400" height="600"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+
+let player = {
+  x: WIDTH / 2,
+  y: HEIGHT - 50,
+  w: 40,
+  h: 40,
+  vy: -10,
+  vx: 0,
+  gravity: 0.4,
+  jump: -10,
+  color: '#3a3',
+};
+
+let platforms = [];
+const PLATFORM_WIDTH = 60;
+const PLATFORM_HEIGHT = 12;
+const PLATFORM_COUNT = 8;
+
+function createPlatform(y) {
+  return {
+    x: Math.random() * (WIDTH - PLATFORM_WIDTH),
+    y: y,
+    w: PLATFORM_WIDTH,
+    h: PLATFORM_HEIGHT,
+    color: '#fff'
+  };
+}
+
+function initPlatforms() {
+  platforms = [];
+  let step = HEIGHT / PLATFORM_COUNT;
+  for (let i = 0; i < PLATFORM_COUNT; i++) {
+    platforms.push(createPlatform(HEIGHT - i * step));
+  }
+}
+
+let score = 0;
+let maxY = player.y;
+
+function resetGame() {
+  player.x = WIDTH / 2;
+  player.y = HEIGHT - 50;
+  player.vy = -10;
+  player.vx = 0;
+  score = 0;
+  maxY = player.y;
+  initPlatforms();
+}
+
+initPlatforms();
+
+let left = false, right = false;
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') left = true;
+  if (e.key === 'ArrowRight') right = true;
+  if (e.key === ' ' && player.y > HEIGHT - 60) resetGame();
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft') left = false;
+  if (e.key === 'ArrowRight') right = false;
+});
+
+function update() {
+  // Move player
+  if (left) player.vx = -4;
+  else if (right) player.vx = 4;
+  else player.vx = 0;
+
+  player.x += player.vx;
+  player.vy += player.gravity;
+  player.y += player.vy;
+
+  // Wrap horizontally
+  if (player.x < -player.w) player.x = WIDTH;
+  if (player.x > WIDTH) player.x = -player.w;
+
+  // Platform collision (only falling)
+  if (player.vy > 0) {
+    for (let plat of platforms) {
+      if (
+        player.x + player.w > plat.x &&
+        player.x < plat.x + plat.w &&
+        player.y + player.h > plat.y &&
+        player.y + player.h < plat.y + plat.h &&
+        player.vy > 0
+      ) {
+        player.vy = player.jump;
+      }
+    }
+  }
+
+  // Scroll screen up if player is high enough
+  if (player.y < HEIGHT / 2) {
+    let diff = HEIGHT / 2 - player.y;
+    player.y = HEIGHT / 2;
+    for (let plat of platforms) plat.y += diff;
+    score += Math.floor(diff);
+  }
+
+  // Recycle platforms
+  for (let plat of platforms) {
+    if (plat.y > HEIGHT) {
+      plat.x = Math.random() * (WIDTH - PLATFORM_WIDTH);
+      plat.y = 0;
+    }
+  }
+
+  // Game over
+  if (player.y > HEIGHT) {
+    ctx.fillStyle = "#000a";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillStyle = "#fff";
+    ctx.font = "32px sans-serif";
+    ctx.fillText("Game Over", WIDTH / 2 - 80, HEIGHT / 2);
+    ctx.font = "20px sans-serif";
+    ctx.fillText("Score: " + score, WIDTH / 2 - 40, HEIGHT / 2 + 30);
+    ctx.fillText("Press SPACE to restart", WIDTH / 2 - 100, HEIGHT / 2 + 60);
+    return false;
+  }
+
+  return true;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+  // Draw player
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  // Draw platforms
+  for (let plat of platforms) {
+    ctx.fillStyle = plat.color;
+    ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+  }
+
+  // Draw score
+  ctx.fillStyle = "#000";
+  ctx.font = "20px sans-serif";
+  ctx.fillText("Score: " + score, 10, 30);
+}
+
+function loop() {
+  if (update()) {
+    draw();
+    requestAnimationFrame(loop);
+  } else {
+    draw();
+  }
+}
+
+loop();
+</script>
+</body>
+</html>
