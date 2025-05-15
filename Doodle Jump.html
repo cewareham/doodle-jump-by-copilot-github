@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Doodle Jump 03 Rockets added</title>
+  <title>Doodle Jump 04 Propellors added</title>
   <style>
     body { margin: 0; background: #222; }
     canvas { display: block; margin: 0 auto; background: #aef; }
@@ -36,12 +36,14 @@ const PLATFORM_HEIGHT = 12;
 const PLATFORM_COUNT = 8;
 
 function createPlatform(y) {
-  // 20% chance to have a spring, 10% chance to have a rocket (exclusive)
+  // 20% chance to have a spring, 10% rocket, 10% propellor hat (all exclusive)
   const rand = Math.random();
-  let hasSpring = false, hasRocket = false;
+  let hasSpring = false, hasRocket = false, hasPropellor = false;
   if (rand < 0.1) {
     hasRocket = true;
-  } else if (rand < 0.3) {
+  } else if (rand < 0.2) {
+    hasPropellor = true;
+  } else if (rand < 0.4) {
     hasSpring = true;
   }
   return {
@@ -53,7 +55,9 @@ function createPlatform(y) {
     hasSpring: hasSpring,
     springOffset: hasSpring ? Math.random() * (PLATFORM_WIDTH - 20) : 0,
     hasRocket: hasRocket,
-    rocketOffset: hasRocket ? Math.random() * (PLATFORM_WIDTH - 20) : 0
+    rocketOffset: hasRocket ? Math.random() * (PLATFORM_WIDTH - 20) : 0,
+    hasPropellor: hasPropellor,
+    propellorOffset: hasPropellor ? Math.random() * (PLATFORM_WIDTH - 20) : 0
   };
 }
 
@@ -126,6 +130,17 @@ function update() {
           player.vy = player.jump * 3; // Super rocket jump!
           plat.hasRocket = false; // Rocket is used up
         }
+        // Check for propellor hat
+        else if (
+          plat.hasPropellor &&
+          player.x + player.w > plat.x + plat.propellorOffset + 5 &&
+          player.x < plat.x + plat.propellorOffset + 25 &&
+          player.y + player.h > plat.y - 15 &&
+          player.y + player.h < plat.y + plat.h
+        ) {
+          player.vy = player.jump * 2.2; // Super propellor jump!
+          plat.hasPropellor = false; // Propellor is used up
+        }
         // Check for spring
         else if (
           plat.hasSpring &&
@@ -181,7 +196,7 @@ function draw() {
   ctx.fillStyle = player.color;
   ctx.fillRect(player.x, player.y, player.w, player.h);
 
-  // Draw platforms, springs, and rockets
+  // Draw platforms, springs, rockets, and propellor hats
   for (let plat of platforms) {
     ctx.fillStyle = plat.color;
     ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
@@ -217,6 +232,27 @@ function draw() {
       ctx.lineTo(plat.x + plat.rocketOffset + 20, plat.y);
       ctx.closePath();
       ctx.fill();
+    }
+
+    // Draw propellor hat if present
+    if (plat.hasPropellor) {
+      // Hat base
+      ctx.fillStyle = "#0af";
+      ctx.beginPath();
+      ctx.ellipse(
+        plat.x + plat.propellorOffset + 15,
+        plat.y - 10,
+        10, 7, 0, 0, Math.PI * 2
+      );
+      ctx.fill();
+      // Propellor blade
+      ctx.strokeStyle = "#f00";
+      ctx.beginPath();
+      ctx.moveTo(plat.x + plat.propellorOffset + 15, plat.y - 15);
+      ctx.lineTo(plat.x + plat.propellorOffset + 5, plat.y - 18);
+      ctx.moveTo(plat.x + plat.propellorOffset + 15, plat.y - 15);
+      ctx.lineTo(plat.x + plat.propellorOffset + 25, plat.y - 18);
+      ctx.stroke();
     }
   }
 
