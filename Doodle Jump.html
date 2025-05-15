@@ -2,8 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Doodle Jump 06 Menu-play btn added</title>
+  <title>Doodle Jump 07 Menu-play btn fixed</title>
   <style>
+    /* ADDED for menu fade-in/out */
+    /* Animations */
+    @keyframes fadeInSlide {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+      }
+      100% {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+      }
+    }
+
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    #menuTitle, #playBtn {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    #menuContainer.show #menuTitle,
+    #menuContainer.show #playBtn {
+      animation: fadeInSlide 0.6s ease forwards;
+    }
+
+    #menuContainer.hide #menuTitle,
+    #menuContainer.hide #playBtn {
+      animation: fadeOut 0.4s ease forwards;
+    }
+    /* END menu fade-in/out*/
     body { margin: 0; background: #222; }
     canvas { display: block; margin: 0 auto; background: #aef; }
     #playBtn {
@@ -21,6 +54,7 @@
       box-shadow: 0 4px 16px #0008;
       z-index: 10;
       display: none;
+      pointer-events: auto;
     }
     #menuTitle {
       position: absolute;
@@ -176,11 +210,44 @@ function resetGame() {
   initMonsters();
 }
 
+// function showMenu() {
+//   gameState = "menu";
+//   playBtn.style.display = "block";
+//   menuTitle.style.display = "block";
+//   // Center player and platform for menu
+//   player.x = WIDTH / 2 - player.w / 2;
+//   player.y = HEIGHT / 2 - 80;
+//   player.vy = -10;
+//   player.vx = 0;
+//   platforms = [{
+//     x: WIDTH / 2 - PLATFORM_WIDTH / 2,
+//     y: HEIGHT / 2,
+//     w: PLATFORM_WIDTH,
+//     h: PLATFORM_HEIGHT,
+//     color: '#fff',
+//     hasSpring: false,
+//     hasRocket: false,
+//     hasPropellor: false
+//   }];
+//   monsters = [];
+// }
+
+// function startGame() {
+//   playBtn.style.display = "none";
+//   menuTitle.style.display = "none";
+//   resetGame();
+//   gameState = "play";
+// }
+
 function showMenu() {
   gameState = "menu";
+  menuContainer.classList.remove("hide");
+  menuContainer.classList.add("show");
+
   playBtn.style.display = "block";
   menuTitle.style.display = "block";
-  // Center player and platform for menu
+
+  // Reset menu state
   player.x = WIDTH / 2 - player.w / 2;
   player.y = HEIGHT / 2 - 80;
   player.vy = -10;
@@ -199,10 +266,17 @@ function showMenu() {
 }
 
 function startGame() {
-  playBtn.style.display = "none";
-  menuTitle.style.display = "none";
-  resetGame();
-  gameState = "play";
+  // Fade out the menu
+  menuContainer.classList.remove("show");
+  menuContainer.classList.add("hide");
+
+  // Wait for fade-out to finish before hiding buttons
+  setTimeout(() => {
+    playBtn.style.display = "none";
+    menuTitle.style.display = "none";
+    resetGame();
+    gameState = "play";
+  }, 400); // Match the fadeOut animation time
 }
 
 playBtn.addEventListener('click', startGame);
@@ -347,19 +421,25 @@ function update() {
   }
 
   // Game over
+  // if (player.y > HEIGHT) {
+  //   ctx.fillStyle = "#000a";
+  //   ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  //   ctx.fillStyle = "#fff";
+  //   ctx.font = "32px sans-serif";
+  //   ctx.fillText("Game Over", WIDTH / 2 - 80, HEIGHT / 2);
+  //   ctx.font = "20px sans-serif";
+  //   ctx.fillText("Score: " + score, WIDTH / 2 - 40, HEIGHT / 2 + 30);
+  //   ctx.fillText("Press SPACE to restart", WIDTH / 2 - 100, HEIGHT / 2 + 60);
+  //   showMenu();
+  //   return false;
+  // }
+
   if (player.y > HEIGHT) {
-    ctx.fillStyle = "#000a";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    ctx.fillStyle = "#fff";
-    ctx.font = "32px sans-serif";
-    ctx.fillText("Game Over", WIDTH / 2 - 80, HEIGHT / 2);
-    ctx.font = "20px sans-serif";
-    ctx.fillText("Score: " + score, WIDTH / 2 - 40, HEIGHT / 2 + 30);
-    ctx.fillText("Press SPACE to restart", WIDTH / 2 - 100, HEIGHT / 2 + 60);
+    gameState = "menu";
     showMenu();
     return false;
   }
-
+  
   return true;
 }
 
@@ -461,13 +541,19 @@ function draw() {
   }
 }
 
+// function loop() {
+//   if (update()) {
+//     draw();
+//     requestAnimationFrame(loop);
+//   } else {
+//     draw();
+//   }
+// }
+
 function loop() {
-  if (update()) {
-    draw();
-    requestAnimationFrame(loop);
-  } else {
-    draw();
-  }
+  const continueLoop = update();
+  draw();
+  requestAnimationFrame(loop);
 }
 
 loop();
